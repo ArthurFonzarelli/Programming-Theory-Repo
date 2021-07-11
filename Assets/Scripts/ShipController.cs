@@ -2,15 +2,31 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ShipController : MonoBehaviour
+// INHERITANCE
+// ShipController inherits from SpaceObject class
+public class ShipController : SpaceObject
 {
-    [SerializeField] float speed = 5;
+    // ENCAPSULATION
+    private float speed = 5;
+    public float Speed
+    {
+        get => speed;
+        set
+        {
+            if ((value > 0) && (value < 10))
+            {
+                speed = value;
+            }
+        }
+
+    }
+
     public SpriteRenderer sprites;
     public Sprite[] spriteList;
     public Sprite[] spriteSpinningList;
 
-    public float shipAnimSpeed;
-    public float shipSpinSpeed;
+    [SerializeField] float shipAnimSpeed;
+    [SerializeField] float shipSpinSpeed;
 
     public int index;
     public int size1;
@@ -23,8 +39,6 @@ public class ShipController : MonoBehaviour
     public bool isSpinKeyPressed;
     public bool spinComplete;
     public bool isStartDirectionUp;
-
-    [SerializeField] SceneManager _sceneManager;
 
     // Weapons
     [SerializeField] Laser _wpnLaserPrefab;
@@ -54,12 +68,25 @@ public class ShipController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
             FireCurrentWeapon();
 
+        UpdatePlayerState();
+    }
+
+    // POLYMORPHISM
+    public override void FireCurrentWeapon()
+    {
+        Laser newLaser = Instantiate(_wpnLaserPrefab, _laserSource.transform.position, Quaternion.identity);
+        newLaser.transform.parent = _activeProjectiles.transform;
+    }
+
+    // ABSTRACTION
+    private void UpdatePlayerState()
+    {
         float movX = Input.GetAxis("Horizontal");
         float movY = Input.GetAxis("Vertical");
         transform.Translate(movX * Time.deltaTime * speed, movY * Time.deltaTime * speed, 0);
 
         // Check for execution of spin maneuver
-        if (/*Input.GetKey("space")*/Input.GetMouseButton(1) && (!isSpinKeyPressed))
+        if (Input.GetMouseButton(1) && (!isSpinKeyPressed))
         {
             curState = 1;
             isSpinKeyPressed = true;
@@ -119,7 +146,7 @@ public class ShipController : MonoBehaviour
             timer += Time.deltaTime;
 
             if (timer >= shipSpinSpeed)
-            { 
+            {
                 timer = 0;
                 index = isStartDirectionUp ? index + 1 : index - 1;
 
@@ -173,19 +200,13 @@ public class ShipController : MonoBehaviour
         sprites.sprite = spriteSpinningList[index];
     }
 
-    void FireCurrentWeapon()
-    {
-        Laser newLaser = Instantiate(_wpnLaserPrefab, _laserSource.transform.position, Quaternion.identity);
-        newLaser.transform.parent = _activeProjectiles.transform;
-    }
-
     private void OnTriggerEnter2D(Collider2D collision)
     {
         // Determine if hit by asteroid
         if (collision.gameObject.tag == "Asteroid Large")
         {
-            _sceneManager.GenerateExplosion(transform.position, 0.5f);
-            Destroy(gameObject);
+            Explode(transform.position, 0.5f);
+            _gameManager.StartGameOverTransition();
         }
     }
 }
